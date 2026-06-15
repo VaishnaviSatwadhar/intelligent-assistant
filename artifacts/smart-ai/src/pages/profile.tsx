@@ -13,12 +13,12 @@ import {
   useUpdateUserProfile,
   getGetUserProfileQueryKey,
 } from "@workspace/api-client-react";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useUser } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { User, Save, Loader2, CheckCircle } from "lucide-react";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const queryClient = useQueryClient();
   const { data: profile, isLoading } = useGetUserProfile();
   const updateProfile = useUpdateUserProfile();

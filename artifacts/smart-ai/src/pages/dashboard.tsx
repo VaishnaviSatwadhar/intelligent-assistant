@@ -1,4 +1,4 @@
-import { useAuth } from "@workspace/replit-auth-web";
+import { useUser } from "@clerk/react";
 import { AppLayout } from "@/components/layout";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useGetDashboardStats } from "@workspace/api-client-react";
@@ -6,7 +6,7 @@ import { Link } from "wouter";
 import { MessageSquare, GraduationCap, Briefcase, FileText, Mic } from "lucide-react";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const { data: stats, isLoading } = useGetDashboardStats();
 
   const modes = [

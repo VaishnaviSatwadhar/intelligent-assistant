@@ -3,15 +3,14 @@ import { db } from "@workspace/db";
 import { bookmarksTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { CreateBookmarkBody, DeleteBookmarkParams } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const bookmarksRouter: IRouter = Router();
 
+bookmarksRouter.use(requireAuth);
+
 bookmarksRouter.get("/bookmarks", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  const userId = req.user!.id;
+  const userId = req.userId!;
   const bookmarks = await db
     .select()
     .from(bookmarksTable)
@@ -22,16 +21,12 @@ bookmarksRouter.get("/bookmarks", async (req, res): Promise<void> => {
 });
 
 bookmarksRouter.post("/bookmarks", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
   const parsed = CreateBookmarkBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const userId = req.user!.id;
+  const userId = req.userId!;
 
   const [bookmark] = await db
     .insert(bookmarksTable)
@@ -42,16 +37,12 @@ bookmarksRouter.post("/bookmarks", async (req, res): Promise<void> => {
 });
 
 bookmarksRouter.delete("/bookmarks/:id", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
   const parsed = DeleteBookmarkParams.safeParse({ id: parseInt(req.params.id as string) });
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  const userId = req.user!.id;
+  const userId = req.userId!;
 
   const [bookmark] = await db
     .select()

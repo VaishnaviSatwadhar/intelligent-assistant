@@ -1,0 +1,1 @@
+- [Clerk Auth Setup](clerk-auth-setup.md) — Replaced Replit Auth with Clerk; key patterns for requireAuth middleware with JIT user provisioning and multi-React dedup fix.

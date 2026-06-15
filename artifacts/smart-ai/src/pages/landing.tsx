@@ -1,9 +1,11 @@
 import { Link } from "wouter";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useUser } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 
 export default function LandingPage() {
-  const { isAuthenticated, login } = useAuth();
+  const { isSignedIn } = useUser();
+
+  const basePath = (import.meta as any).env?.BASE_URL?.replace(/\/$/, "") ?? "";
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -16,16 +18,25 @@ export default function LandingPage() {
         </p>
         
         <div className="flex justify-center gap-4 pt-8">
-          {isAuthenticated ? (
+          {isSignedIn ? (
             <Link href="/dashboard">
               <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8">
                 Enter Dashboard
               </Button>
             </Link>
           ) : (
-            <Button size="lg" onClick={login} className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8">
-              Log in with Replit
-            </Button>
+            <div className="flex gap-3">
+              <Link href="/sign-in">
+                <Button size="lg" variant="outline" className="text-lg px-8">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/sign-up">
+                <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
       </div>

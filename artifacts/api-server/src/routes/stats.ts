@@ -7,17 +7,14 @@ import {
   bookmarksTable,
 } from "@workspace/db";
 import { eq, count, sql } from "drizzle-orm";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 
 const statsRouter: IRouter = Router();
 
-statsRouter.get("/stats", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  const userId = req.user!.id;
+statsRouter.get("/stats", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.userId!;
 
   const [convCount] = await db
     .select({ count: count() })

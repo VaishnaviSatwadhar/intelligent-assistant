@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@workspace/replit-auth-web";
+import { useUser, useClerk } from "@clerk/react";
 import { 
   LayoutDashboard, 
   MessageSquare, 
@@ -18,8 +18,15 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { logout, user } = useAuth();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const basePath = (import.meta as any).env?.BASE_URL?.replace(/\/$/, "") ?? "";
+
+  const handleLogout = () => {
+    signOut({ redirectUrl: basePath || "/" });
+  };
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -78,7 +85,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           );
         })}
         <button 
-          onClick={logout}
+          onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2 w-full rounded-md transition-colors hover:bg-destructive hover:text-destructive-foreground"
         >
           <LogOut size={18} />
@@ -90,12 +97,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* Desktop Sidebar */}
       <aside className="hidden md:block w-64 h-full shrink-0">
         <SidebarContent />
       </aside>
 
-      {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 border-b border-border bg-background z-50 flex items-center px-4 justify-between">
         <h2 className="text-xl font-bold bg-gradient-to-br from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
           SmartAI
@@ -112,7 +117,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </Sheet>
       </div>
 
-      {/* Main Content */}
       <main className="flex-1 h-full overflow-y-auto pt-16 md:pt-0 relative">
         {children}
       </main>

@@ -3,15 +3,15 @@ import { db } from "@workspace/db";
 import { userProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { UpdateUserProfileBody } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const userRouter: IRouter = Router();
 
+userRouter.use(requireAuth);
+
 userRouter.get("/user/profile", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  const userId = req.user!.id;
+  const userId = req.userId!;
+  const userRecord = req.userRecord!;
 
   let [profile] = await db
     .select()
@@ -23,7 +23,7 @@ userRouter.get("/user/profile", async (req, res): Promise<void> => {
       .insert(userProfilesTable)
       .values({
         userId,
-        displayName: req.user!.firstName || null,
+        displayName: userRecord.firstName || null,
         preferredLanguage: "en",
         theme: "system",
         preferredModel: "llama3.2",
@@ -40,21 +40,18 @@ userRouter.get("/user/profile", async (req, res): Promise<void> => {
     preferredModel: profile.preferredModel,
     voiceEnabled: profile.voiceEnabled,
     bio: profile.bio,
-    profileImageUrl: req.user!.profileImageUrl,
+    profileImageUrl: userRecord.profileImageUrl,
   });
 });
 
 userRouter.patch("/user/profile", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
   const parsed = UpdateUserProfileBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const userId = req.user!.id;
+  const userId = req.userId!;
+  const userRecord = req.userRecord!;
 
   const updates: Partial<typeof userProfilesTable.$inferInsert> = {};
   if (parsed.data.displayName !== undefined) updates.displayName = parsed.data.displayName;
@@ -90,7 +87,7 @@ userRouter.patch("/user/profile", async (req, res): Promise<void> => {
     preferredModel: profile.preferredModel,
     voiceEnabled: profile.voiceEnabled,
     bio: profile.bio,
-    profileImageUrl: req.user!.profileImageUrl,
+    profileImageUrl: userRecord.profileImageUrl,
   });
 });
 

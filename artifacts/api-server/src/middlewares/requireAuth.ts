@@ -1,5 +1,5 @@
-import { Router, type IRouter, type Request, type Response } from "express";
 import { getAuth, createClerkClient } from "@clerk/express";
+import type { Request, Response, NextFunction } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -7,16 +7,35 @@ const clerkClient = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY,
 });
 
-const router: IRouter = Router();
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string;
+      userRecord?: {
+        id: string;
+        email: string | null;
+        firstName: string | null;
+        lastName: string | null;
+        profileImageUrl: string | null;
+      };
+    }
+  }
+}
 
-router.get("/auth/user", async (req: Request, res: Response) => {
+export async function requireAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   const auth = getAuth(req);
   const userId = auth?.userId;
 
   if (!userId) {
-    res.json({ user: null });
+    res.status(401).json({ error: "Unauthorized" });
     return;
   }
+
+  req.userId = userId;
 
   let [user] = await db
     .select()
@@ -45,15 +64,13 @@ router.get("/auth/user", async (req: Request, res: Response) => {
       .returning();
   }
 
-  res.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      profileImageUrl: user.profileImageUrl,
-    },
-  });
-});
+  req.userRecord = {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    profileImageUrl: user.profileImageUrl,
+  };
 
-export default router;
+  next();
+}

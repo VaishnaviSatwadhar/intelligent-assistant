@@ -11,6 +11,7 @@ import {
   AnalyzeDocumentParams,
   AnalyzeDocumentBody,
 } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const workspaceRoot = process.cwd().endsWith(path.join("artifacts", "api-server"))
   ? path.resolve(process.cwd(), "../..")
@@ -84,12 +85,8 @@ async function extractText(filePath: string, ext: string): Promise<string> {
 
 const documentsRouter: IRouter = Router();
 
-documentsRouter.get("/documents", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  const userId = req.user!.id;
+documentsRouter.get("/documents", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.userId!;
   const docs = await db
     .select({
       id: documentsTable.id,
@@ -107,17 +104,13 @@ documentsRouter.get("/documents", async (req, res): Promise<void> => {
   res.json(docs);
 });
 
-documentsRouter.post("/documents", upload.single("file"), async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+documentsRouter.post("/documents", requireAuth, upload.single("file"), async (req, res): Promise<void> => {
   if (!req.file) {
     res.status(400).json({ error: "No file uploaded" });
     return;
   }
 
-  const userId = req.user!.id;
+  const userId = req.userId!;
   const ext = path.extname(req.file.originalname).toLowerCase().replace(".", "");
   const content = await extractText(req.file.path, "." + ext);
 
@@ -144,17 +137,13 @@ documentsRouter.post("/documents", upload.single("file"), async (req, res): Prom
   res.status(201).json(doc);
 });
 
-documentsRouter.get("/documents/:id", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+documentsRouter.get("/documents/:id", requireAuth, async (req, res): Promise<void> => {
   const parsed = GetDocumentParams.safeParse({ id: parseInt(req.params.id as string) });
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  const userId = req.user!.id;
+  const userId = req.userId!;
 
   const [doc] = await db
     .select({
@@ -177,17 +166,13 @@ documentsRouter.get("/documents/:id", async (req, res): Promise<void> => {
   res.json(doc);
 });
 
-documentsRouter.delete("/documents/:id", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+documentsRouter.delete("/documents/:id", requireAuth, async (req, res): Promise<void> => {
   const parsed = DeleteDocumentParams.safeParse({ id: parseInt(req.params.id as string) });
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  const userId = req.user!.id;
+  const userId = req.userId!;
 
   const [doc] = await db
     .select()
@@ -203,11 +188,7 @@ documentsRouter.delete("/documents/:id", async (req, res): Promise<void> => {
   res.json({ success: true });
 });
 
-documentsRouter.post("/documents/:id/analyze", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+documentsRouter.post("/documents/:id/analyze", requireAuth, async (req, res): Promise<void> => {
   const idParsed = AnalyzeDocumentParams.safeParse({ id: parseInt(req.params.id as string) });
   if (!idParsed.success) {
     res.status(400).json({ error: "Invalid id" });
@@ -219,7 +200,7 @@ documentsRouter.post("/documents/:id/analyze", async (req, res): Promise<void> =
     return;
   }
 
-  const userId = req.user!.id;
+  const userId = req.userId!;
   const [doc] = await db
     .select()
     .from(documentsTable)

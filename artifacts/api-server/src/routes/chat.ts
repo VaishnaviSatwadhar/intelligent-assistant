@@ -14,6 +14,7 @@ import {
   UpdateConversationParams,
 } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 
@@ -87,12 +88,10 @@ function generateSuggestedQuestions(content: string, mode: string): string[] {
 
 const chatRouter: IRouter = Router();
 
+chatRouter.use(requireAuth);
+
 chatRouter.get("/conversations", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  const userId = req.user!.id;
+  const userId = req.userId!;
 
   const messageCountSq = db
     .select({
@@ -133,16 +132,12 @@ chatRouter.get("/conversations", async (req, res): Promise<void> => {
 });
 
 chatRouter.post("/conversations", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
   const parsed = CreateConversationBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const userId = req.user!.id;
+  const userId = req.userId!;
   const { title, mode } = parsed.data;
 
   const [conv] = await db
@@ -158,16 +153,12 @@ chatRouter.post("/conversations", async (req, res): Promise<void> => {
 });
 
 chatRouter.get("/conversations/:id", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
   const parsed = GetConversationParams.safeParse({ id: parseInt(req.params.id as string) });
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  const userId = req.user!.id;
+  const userId = req.userId!;
 
   const [conv] = await db
     .select()
@@ -189,10 +180,6 @@ chatRouter.get("/conversations/:id", async (req, res): Promise<void> => {
 });
 
 chatRouter.patch("/conversations/:id", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
   const idParsed = UpdateConversationParams.safeParse({ id: parseInt(req.params.id as string) });
   if (!idParsed.success) {
     res.status(400).json({ error: "Invalid id" });
@@ -203,7 +190,7 @@ chatRouter.patch("/conversations/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const userId = req.user!.id;
+  const userId = req.userId!;
 
   const [conv] = await db
     .select()
@@ -234,16 +221,12 @@ chatRouter.patch("/conversations/:id", async (req, res): Promise<void> => {
 });
 
 chatRouter.delete("/conversations/:id", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
   const parsed = DeleteConversationParams.safeParse({ id: parseInt(req.params.id as string) });
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  const userId = req.user!.id;
+  const userId = req.userId!;
 
   const [conv] = await db
     .select()
@@ -260,17 +243,13 @@ chatRouter.delete("/conversations/:id", async (req, res): Promise<void> => {
 });
 
 chatRouter.post("/chat", async (req, res): Promise<void> => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
   const parsed = SendChatMessageBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
 
-  const userId = req.user!.id;
+  const userId = req.userId!;
   const { content, conversationId, mode = "general", model = "llama3.2", language = "en" } = parsed.data;
 
   let convId = conversationId;
