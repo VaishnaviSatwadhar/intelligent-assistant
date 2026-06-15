@@ -1,22 +1,33 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: SmartAI Assistant API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: Auth
+    description: Browser and mobile authentication endpoints.
+  - name: chat
+    description: AI chat and conversation operations
+  - name: documents
+    description: Document upload and analysis
+  - name: bookmarks
+    description: Saved bookmark operations
+  - name: user
+    description: User profile operations
+  - name: stats
+    description: Dashboard statistics
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +35,464 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/user:
+    get:
+      tags: [Auth]
+      operationId: getCurrentAuthUser
+      summary: Get the currently authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Auth status resolved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+
+  /login:
+    get:
+      tags: [Auth]
+      operationId: beginBrowserLogin
+      summary: Start the browser OIDC login flow
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the OIDC authorization endpoint.
+
+  /callback:
+    get:
+      tags: [Auth]
+      operationId: handleBrowserLoginCallback
+      summary: Complete the browser OIDC login flow
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: iss
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uri
+      responses:
+        '302':
+          description: Redirect on success or failure.
+
+  /logout:
+    get:
+      tags: [Auth]
+      operationId: logoutBrowserSession
+      summary: Clear the session and begin OIDC logout
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '302':
+          description: Redirect to the OIDC provider logout URL.
+
+  /mobile-auth/token-exchange:
+    post:
+      tags: [Auth]
+      operationId: exchangeMobileAuthorizationCode
+      summary: Exchange a mobile OIDC code for a session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobileTokenExchangeRequest'
+      responses:
+        '200':
+          description: Session created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileTokenExchangeSuccess'
+        '400':
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Token did not contain usable claims.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Token exchange failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /mobile-auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutMobileSession
+      summary: Delete a mobile session token
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+      responses:
+        '200':
+          description: Logout processed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutSuccess'
+
+  /conversations:
+    get:
+      operationId: listConversations
+      tags: [chat]
+      summary: List conversations for current user
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
+    post:
+      operationId: createConversation
+      tags: [chat]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversationInput"
+      responses:
+        "201":
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /conversations/{id}:
+    get:
+      operationId: getConversation
+      tags: [chat]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateConversation
+      tags: [chat]
+      summary: Update conversation title or bookmark
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversationUpdate"
+      responses:
+        "200":
+          description: Updated conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+    delete:
+      operationId: deleteConversation
+      tags: [chat]
+      summary: Delete a conversation and its messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
+
+  /chat:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message and get AI response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "503":
+          description: Ollama unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List uploaded documents for current user
+      responses:
+        "200":
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+
+  /documents/{id}:
+    get:
+      operationId: getDocument
+      tags: [documents]
+      summary: Get document details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteDocument
+      tags: [documents]
+      summary: Delete a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
+
+  /documents/{id}/analyze:
+    post:
+      operationId: analyzeDocument
+      tags: [documents]
+      summary: Analyze a document with AI
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentAnalysisRequest"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentAnalysisResult"
+
+  /bookmarks:
+    get:
+      operationId: listBookmarks
+      tags: [bookmarks]
+      summary: List bookmarks for current user
+      responses:
+        "200":
+          description: List of bookmarks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bookmark"
+    post:
+      operationId: createBookmark
+      tags: [bookmarks]
+      summary: Create a bookmark
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookmarkInput"
+      responses:
+        "201":
+          description: Bookmark created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bookmark"
+
+  /bookmarks/{id}:
+    delete:
+      operationId: deleteBookmark
+      tags: [bookmarks]
+      summary: Delete a bookmark
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
+
+  /user/profile:
+    get:
+      operationId: getUserProfile
+      tags: [user]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    patch:
+      operationId: updateUserProfile
+      tags: [user]
+      summary: Update user profile preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /stats:
+    get:
+      operationId: getDashboardStats
+      tags: [stats]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /models:
+    get:
+      operationId: listAvailableModels
+      tags: [chat]
+      summary: List available Ollama models
+      responses:
+        "200":
+          description: List of models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OllamaModel"
+        "503":
+          description: Ollama unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
+  parameters:
+    AuthorizationSessionHeader:
+      name: Authorization
+      in: header
+      required: false
+      description: Opaque session token — `Bearer <sid>`.
+      schema:
+        type: string
+    SessionCookie:
+      name: sid
+      in: cookie
+      required: false
+      description: Browser session cookie.
+      schema:
+        type: string
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +502,385 @@ components:
       required:
         - status
 
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id:
+          type: string
+        email:
+          type: [string, 'null']
+          format: email
+        firstName:
+          type: [string, 'null']
+        lastName:
+          type: [string, 'null']
+        profileImageUrl:
+          type: [string, 'null']
+
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/AuthUser'
+            - type: 'null'
+
+    MobileTokenExchangeRequest:
+      type: object
+      required: [code, code_verifier, redirect_uri, state]
+      properties:
+        code:
+          type: string
+          minLength: 1
+        code_verifier:
+          type: string
+          minLength: 1
+        redirect_uri:
+          type: string
+          minLength: 1
+          format: uri
+        state:
+          type: string
+          minLength: 1
+        nonce:
+          type: string
+          minLength: 1
+
+    MobileTokenExchangeSuccess:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    LogoutSuccess:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          const: true
+
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    DeleteResult:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+
+    Conversation:
+      type: object
+      required: [id, title, mode, bookmarked, createdAt, updatedAt, messageCount]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        mode:
+          type: string
+          enum: [general, learning, career, document, voice]
+        bookmarked:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        messageCount:
+          type: integer
+        lastMessage:
+          type: ["string", "null"]
+
+    ConversationInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        mode:
+          type: string
+          enum: [general, learning, career, document, voice]
+
+    ConversationUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        bookmarked:
+          type: boolean
+
+    Message:
+      type: object
+      required: [id, conversationId, role, content, createdAt]
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        metadata:
+          type: ["string", "null"]
+
+    ConversationWithMessages:
+      type: object
+      required: [id, title, mode, bookmarked, createdAt, updatedAt, messages]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        mode:
+          type: string
+          enum: [general, learning, career, document, voice]
+        bookmarked:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+
+    ChatMessageInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+        conversationId:
+          type: ["integer", "null"]
+        mode:
+          type: string
+          enum: [general, learning, career, document, voice]
+        model:
+          type: string
+        language:
+          type: string
+          enum: [en, hi, mr]
+
+    ChatResponse:
+      type: object
+      required: [content, conversationId, messageId, suggestedQuestions]
+      properties:
+        content:
+          type: string
+        conversationId:
+          type: integer
+        messageId:
+          type: integer
+        suggestedQuestions:
+          type: array
+          items:
+            type: string
+        model:
+          type: string
+
+    Document:
+      type: object
+      required: [id, name, fileType, fileSize, createdAt, analyzed]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        fileType:
+          type: string
+        fileSize:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        analyzed:
+          type: boolean
+        summary:
+          type: ["string", "null"]
+
+    DocumentAnalysisRequest:
+      type: object
+      required: [analysisType]
+      properties:
+        analysisType:
+          type: string
+          enum: [summary, keyPoints, qa, quiz]
+
+    DocumentAnalysisResult:
+      type: object
+      required: [analysisType, result, documentId]
+      properties:
+        analysisType:
+          type: string
+        result:
+          type: string
+        documentId:
+          type: integer
+        qaItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/QAItem"
+
+    QAItem:
+      type: object
+      required: [question, answer]
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+
+    Bookmark:
+      type: object
+      required: [id, title, content, category, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+        sourceConversationId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    BookmarkInput:
+      type: object
+      required: [title, content, category]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        sourceConversationId:
+          type: ["integer", "null"]
+
+    UserProfile:
+      type: object
+      required: [id, displayName, preferredLanguage, theme, preferredModel, voiceEnabled]
+      properties:
+        id:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        preferredLanguage:
+          type: string
+          enum: [en, hi, mr]
+        theme:
+          type: string
+          enum: [light, dark, system]
+        preferredModel:
+          type: string
+        voiceEnabled:
+          type: boolean
+        bio:
+          type: ["string", "null"]
+        profileImageUrl:
+          type: ["string", "null"]
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        displayName:
+          type: string
+        preferredLanguage:
+          type: string
+          enum: [en, hi, mr]
+        theme:
+          type: string
+          enum: [light, dark, system]
+        preferredModel:
+          type: string
+        voiceEnabled:
+          type: boolean
+        bio:
+          type: string
+
+    DashboardStats:
+      type: object
+      required: [totalConversations, totalMessages, totalDocuments, bookmarkedConversations, conversationsByMode, recentActivity]
+      properties:
+        totalConversations:
+          type: integer
+        totalMessages:
+          type: integer
+        totalDocuments:
+          type: integer
+        bookmarkedConversations:
+          type: integer
+        conversationsByMode:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModeCount"
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecentActivity"
+
+    ModeCount:
+      type: object
+      required: [mode, count]
+      properties:
+        mode:
+          type: string
+        count:
+          type: integer
+
+    RecentActivity:
+      type: object
+      required: [type, title, createdAt]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    OllamaModel:
+      type: object
+      required: [name, size]
+      properties:
+        name:
+          type: string
+        size:
+          type: ["integer", "null"]
+        digest:
+          type: ["string", "null"]
