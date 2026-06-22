@@ -17,7 +17,8 @@ A full-stack AI-powered personal assistant web application with multi-mode chat,
 9. [Frontend Pages & Logic](#frontend-pages--logic)
 10. [Local Setup & Run](#local-setup--run)
 11. [Environment Variables](#environment-variables)
-12. [How Everything Connects](#how-everything-connects)
+12. [API Keys — What, Where & How to Get Them](#api-keys--what-where--how-to-get-them)
+13. [How Everything Connects](#how-everything-connects)
 
 ---
 
@@ -582,6 +583,125 @@ lib/api-client-react/src/generated/api.ts   (React Query hooks)
 lib/api-zod/src/generated/api.ts            (Zod validators)
 ```
 Any time you add a new API endpoint, update `openapi.yaml` first, then run codegen — the frontend hooks and backend validators are auto-generated.
+
+---
+
+## API Keys — What, Where & How to Get Them
+
+This project uses **2 external services** that require API keys. No other paid APIs are needed — the AI runs locally via Ollama.
+
+---
+
+### 1. Clerk (Authentication)
+
+**What it does:** Handles all user login/signup — Google OAuth, email + OTP, session management.
+
+**Website:** [https://clerk.com](https://clerk.com)
+
+**Keys needed:**
+
+| Key Name | Used In | Description |
+|---|---|---|
+| `CLERK_SECRET_KEY` | Backend (Express) | Validates session tokens server-side. Starts with `sk_test_` (dev) or `sk_live_` (prod) |
+| `CLERK_PUBLISHABLE_KEY` | Backend (Express middleware) | Resolves the correct Clerk app per domain |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Frontend (React) | Initialises Clerk in the browser. Starts with `pk_test_` (dev) or `pk_live_` (prod) |
+
+**How to get them:**
+
+> **If using Replit:** Keys are auto-provisioned — you don't need to create a Clerk account. They appear automatically in your Replit Secrets after the app is set up.
+
+> **If running locally (self-hosted):**
+> 1. Go to [https://clerk.com](https://clerk.com) and create a free account
+> 2. Click **"Create application"** → give it a name (e.g. `SmartAI`)
+> 3. Choose login methods: enable **Google**, **GitHub**, **Email**
+> 4. Go to **API Keys** in the left sidebar
+> 5. Copy **Publishable key** → use as `CLERK_PUBLISHABLE_KEY` and `VITE_CLERK_PUBLISHABLE_KEY`
+> 6. Copy **Secret key** → use as `CLERK_SECRET_KEY`
+> 7. Paste all three into your `.env` file
+
+**Free tier limits:** 10,000 Monthly Active Users — more than enough for personal or small-team use.
+
+---
+
+### 2. PostgreSQL Database
+
+**What it does:** Stores all user data — conversations, messages, documents, bookmarks, profile settings.
+
+**Not a paid API** — you host it yourself. Options:
+
+| Option | Website | Free Tier |
+|---|---|---|
+| **Neon** (recommended, serverless) | [https://neon.tech](https://neon.tech) | Yes — 0.5 GB free |
+| **Supabase** | [https://supabase.com](https://supabase.com) | Yes — 500 MB free |
+| **Railway** | [https://railway.app](https://railway.app) | Yes — limited hours |
+| **Local PostgreSQL** | [https://postgresql.org](https://postgresql.org) | Free forever |
+
+**Key needed:**
+
+| Key Name | Description |
+|---|---|
+| `DATABASE_URL` | Full PostgreSQL connection string |
+
+**Format:**
+```
+postgresql://USERNAME:PASSWORD@HOST:PORT/DATABASE_NAME
+```
+
+**Example (Neon):**
+```
+postgresql://myuser:mypassword@ep-cool-rain-123456.us-east-2.aws.neon.tech/smartai?sslmode=require
+```
+
+**How to get it (Neon — recommended):**
+1. Go to [https://neon.tech](https://neon.tech) and sign up free
+2. Click **"New Project"** → name it `smartai`
+3. After creation, go to **"Connection Details"**
+4. Copy the **Connection string** — that is your `DATABASE_URL`
+5. Paste it into your `.env` file
+
+> **If using Replit:** The PostgreSQL database is auto-provisioned and `DATABASE_URL` is automatically set in your environment. No manual setup needed.
+
+---
+
+### 3. Ollama (AI / LLM) — No API Key Required
+
+**What it does:** Runs the AI language model (Llama 3.2) entirely on your own machine. No API key, no cost, no data sent to any server.
+
+**Website:** [https://ollama.com](https://ollama.com)
+
+**Setup:**
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull the default model used by this app
+ollama pull llama3.2
+
+# Start the server (runs on localhost:11434)
+ollama serve
+```
+
+**Optional models you can use:**
+| Model | Command | Size | Notes |
+|---|---|---|---|
+| `llama3.2` | `ollama pull llama3.2` | ~2 GB | Default, fast |
+| `llama3.2:1b` | `ollama pull llama3.2:1b` | ~1.3 GB | Smaller, faster |
+| `mistral` | `ollama pull mistral` | ~4 GB | Good for documents |
+| `gemma2` | `ollama pull gemma2` | ~5 GB | Strong at reasoning |
+
+Change the model in **Settings** inside the app — no code changes needed.
+
+---
+
+### Summary Table
+
+| Service | API Key(s) | Website | Cost |
+|---|---|---|---|
+| **Clerk** | `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` | [clerk.com](https://clerk.com) | Free up to 10k users/month |
+| **PostgreSQL** | `DATABASE_URL` | [neon.tech](https://neon.tech) (or self-host) | Free tier available |
+| **Ollama / Llama** | None | [ollama.com](https://ollama.com) | Completely free, runs locally |
+
+> **Total external API cost for personal use: $0**
 
 ---
 
