@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "i_0HM2Vfn9YXF-nDUA6ut"
+uri = "file://README.md"
+type = "text"
+title = "SmartAI Assistant — Full Documentation"
