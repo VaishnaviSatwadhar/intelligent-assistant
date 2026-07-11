@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, useUser, useClerk } from "@clerk/react";
-import { publishableKeyFromHost } from "@clerk/react/internal";
 import { dark } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,17 +16,15 @@ import DocumentsPage from "@/pages/documents";
 import BookmarksPage from "@/pages/bookmarks";
 import ProfilePage from "@/pages/profile";
 import SettingsPage from "@/pages/settings";
+import GeneratePage from "@/pages/generate";
 
 const queryClient = new QueryClient();
 
-const basePath = (import.meta as any).env?.BASE_URL?.replace(/\/$/, "") ?? "";
+const basePath = import.meta.env.BASE_URL ? import.meta.env.BASE_URL.replace(/\/$/, "") : "";
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  (import.meta as any).env?.VITE_CLERK_PUBLISHABLE_KEY,
-);
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-const clerkProxyUrl = (import.meta as any).env?.VITE_CLERK_PROXY_URL;
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -167,7 +164,7 @@ function ClerkRouter() {
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
+      proxyUrl={clerkProxyUrl || undefined}
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
@@ -200,6 +197,9 @@ function ClerkRouter() {
           </Route>
           <Route path="/bookmarks">
             {() => <ProtectedRoute component={BookmarksPage} />}
+          </Route>
+          <Route path="/generate">
+            {() => <ProtectedRoute component={GeneratePage} />}
           </Route>
           <Route path="/profile">
             {() => <ProtectedRoute component={ProfilePage} />}
