@@ -72,9 +72,10 @@ async function extractText(filePath: string, ext: string): Promise<string> {
   }
   if (ext === ".pdf") {
     try {
-      const pdfParse = await import("pdf-parse");
+      const pdfParseModule = await import("pdf-parse");
+      const pdfParse = pdfParseModule.default || pdfParseModule;
       const buffer = fs.readFileSync(filePath);
-      const parsed = await pdfParse.default(buffer);
+      const parsed = await (pdfParse as any)(buffer);
       return parsed.text;
     } catch {
       return fs.readFileSync(filePath, "utf-8").replace(/[^\x20-\x7E\n]/g, " ");
