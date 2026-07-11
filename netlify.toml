@@ -2,6 +2,10 @@
   command = "pnpm run typecheck && pnpm --filter @workspace/smart-ai run build"
   publish = "artifacts/smart-ai/dist/public"
 
+[build.environment]
+  PNPM_FLAGS = "--no-frozen-lockfile"
+
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
