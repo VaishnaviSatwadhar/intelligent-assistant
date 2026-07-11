@@ -4,6 +4,7 @@
 
 [build.environment]
   PNPM_FLAGS = "--no-frozen-lockfile"
+  VITE_CLERK_PUBLISHABLE_KEY = "pk_test_c3VubnktZmlzaC03NC5jbGVyay5hY2NvdW50cy5kZXYk"
 
 
 [[redirects]]
