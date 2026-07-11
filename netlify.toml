@@ -1,0 +1,8 @@
+[build]
+  command = "pnpm run typecheck && pnpm --filter @workspace/smart-ai run build"
+  publish = "artifacts/smart-ai/dist/public"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
