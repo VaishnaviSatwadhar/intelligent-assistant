@@ -1,18 +1,8 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "artifacts/smart-ai/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    },
-    {
-      "src": "api/index.ts",
-      "use": "@vercel/node"
-    }
-  ],
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "artifacts/smart-ai/dist",
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/api/(.*)",
