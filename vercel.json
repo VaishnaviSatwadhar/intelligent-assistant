@@ -1,12 +1,26 @@
 {
   "version": 2,
-  "buildCommand": "pnpm --filter @workspace/smart-ai run build && rm -rf dist && cp -R artifacts/smart-ai/dist dist",
-  "outputDirectory": "dist",
-  "framework": "vite",
+  "builds": [
+    {
+      "src": "artifacts/smart-ai/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/index.ts"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
