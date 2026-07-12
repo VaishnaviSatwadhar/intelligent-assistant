@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "build": "pnpm run typecheck && pnpm --filter @workspace/smart-ai... --filter @workspace/api-server... run build",
+    "build": "pnpm run typecheck && pnpm --filter @workspace/smart-ai... --filter @workspace/api-server... run build && cp -r artifacts/smart-ai/dist dist",
     "typecheck:libs": "tsc --build --force",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
