@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "pnpm --filter @workspace/smart-ai run build",
+  "buildCommand": "pnpm --filter @workspace/smart-ai run build && rm -rf dist && cp -R artifacts/smart-ai/dist dist",
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
