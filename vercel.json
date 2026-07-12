@@ -1,7 +1,7 @@
 {
   "version": 2,
   "buildCommand": "pnpm --filter @workspace/smart-ai run build",
-  "outputDirectory": "artifacts/smart-ai/dist/public",
+  "outputDirectory": "artifacts/smart-ai/dist",
   "framework": "vite",
   "rewrites": [
     {
