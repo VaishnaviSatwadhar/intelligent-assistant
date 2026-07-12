@@ -775,3 +775,13 @@ The Intelligent Assistant (SmartAI) is built using a modern full-stack monorepo 
 
 ### 4. Authentication
 - Secured using **Clerk**. The frontend handles user sign-in/sign-up flows, while the backend uses Clerk middleware to verify session tokens and protect routes.
+
+ # #   M a i n   L o g i c   o f   t h e   P r o j e c t 
+ T h e   I n t e l l i g e n t   A s s i s t a n t   l e v e r a g e s   a   R e a c t   f r o n t e n d   a n d   a n   E x p r e s s   b a c k e n d ,   d e e p l y   i n t e g r a t e d   w i t h   C l e r k   f o r   a u t h e n t i c a t i o n   a n d   a   l o c a l / r e m o t e   L L M   e n d p o i n t   ( O l l a m a / O p e n A I   c o m p a t i b l e )   f o r   c o n v e r s a t i o n a l   A I . 
+ 
+ 1 .     * * F r o n t e n d   S t a t e   &   R o u t i n g : * *   R e a c t   h a n d l e s   r o u t i n g   a n d   i n t e r f a c e   s t a t e   v i a   R e a c t   R o u t e r   a n d   Z u s t a n d .   T h e   u s e r   i n t e r a c t s   t h r o u g h   c h a t   i n t e r f a c e s   t h a t   s u p p o r t   b o t h   t e x t   a n d   v o i c e . 
+ 2 .     * * V o i c e   &   M e d i a   p r o c e s s i n g : * *   A u d i o   i n p u t s   a r e   p r o c e s s e d   u s i n g   s t a n d a r d   W e b   A P I s ,   c o n v e r t e d   t o   t e x t ,   a n d   f e d   i n t o   t h e   A I   m o d e l s .   M e d i a   f i l e s   c a n   b e   a t t a c h e d   a s   d o c u m e n t s   f o r   c o n t e x t . 
+ 3 .     * * B a c k e n d   S e r v i c e s : * *   E x p r e s s   p r o v i d e s   e n d p o i n t s   m a p p i n g   t o   d a t a b a s e   o p e r a t i o n s   ( D r i z z l e   O R M   &   P o s t g r e S Q L ) .   A u t h e n t i c a t i o n   i s   i n t e r c e p t e d   s e a m l e s s l y   v i a   C l e r k   M i d d l e w a r e s . 
+ 4 .     * * A I   O r c h e s t r a t i o n : * *   T h e   b a c k e n d   f o r m s   s y s t e m   p r o m p t s   b a s e d   o n   t h e   m o d e   ( e . g . ,   P e e r U p   A I   T e a c h e r   m o d e   r e q u e s t s   e d u c a t i o n a l   b a c k g r o u n d   a n d   g e n d e r   m a t c h i n g   l o g i c   b e f o r e   c o n f i g u r i n g   s y s t e m   i n s t r u c t i o n s )   a n d   d e l e g a t e s   i n f e r e n c e   t o   t h e   i n t e g r a t e d   L L M   p r o v i d e r . 
+  
+ 
