@@ -3,9 +3,17 @@
   publish = "artifacts/smart-ai/dist"
   functions = "netlify/functions"
 
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["pg"]
+
 [build.environment]
   PNPM_FLAGS = "--no-frozen-lockfile"
   VITE_CLERK_PUBLISHABLE_KEY = "pk_test_c3VubnktZmlzaC03NC5jbGVyay5hY2NvdW50cy5kZXYk"
+  DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/smartai"
+  SESSION_SECRET = "super_secret_session_string_replace_me"
+  CLERK_SECRET_KEY = "sk_test_IbD7WPKvtuVSCD9GYHmyFQsDbsjajOgHDbQrGcQijj"
+  CLERK_PUBLISHABLE_KEY = "pk_test_c3VubnktZmlzaC03NC5jbGVyay5hY2NvdW50cy5kZXYk"
 
 [[redirects]]
   from = "/api/*"
