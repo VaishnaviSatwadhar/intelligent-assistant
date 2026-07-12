@@ -5,6 +5,7 @@
  * SmartAI Assistant API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserProfileUpdateAiProvider } from './userProfileUpdateAiProvider';
 import type { UserProfileUpdatePreferredLanguage } from './userProfileUpdatePreferredLanguage';
 import type { UserProfileUpdateTheme } from './userProfileUpdateTheme';
 
@@ -15,4 +16,7 @@ export interface UserProfileUpdate {
   preferredModel?: string;
   voiceEnabled?: boolean;
   bio?: string;
+  aiProvider?: UserProfileUpdateAiProvider;
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
 }

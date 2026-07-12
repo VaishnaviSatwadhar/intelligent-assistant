@@ -1,8 +1,11 @@
 import { Router, type IRouter } from "express";
+import fs from "fs";
+import path from "path";
 import { db } from "@workspace/db";
 import {
   conversationsTable,
   messagesTable,
+  userProfilesTable,
 } from "@workspace/db";
 import { eq, desc, sql, count } from "drizzle-orm";
 import {
@@ -17,6 +20,9 @@ import { logger } from "../lib/logger";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_URL || "http://localhost:11434";
+const DEFAULT_OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const DEFAULT_ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
+const DEFAULT_GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   general: "You are SmartAI Assistant, a helpful, intelligent, and friendly AI assistant. Provide clear, accurate, and thoughtful responses.",
@@ -24,6 +30,7 @@ const SYSTEM_PROMPTS: Record<string, string> = {
   career: "You are SmartAI Career Coach, an expert career guidance counselor. Help with resume improvement, skill recommendations, learning roadmaps, project ideas, interview preparation, and career path planning. Give actionable, practical advice.",
   document: "You are SmartAI Document Analyzer, an expert at analyzing and extracting insights from documents. Help users understand documents, extract key points, generate questions, and summarize content.",
   voice: "You are SmartAI Voice Assistant, a concise and clear assistant optimized for voice interaction. Keep responses brief, clear, and easy to understand when spoken aloud.",
+  english_teacher: "You are SmartAI English Teacher, an expert at teaching English communication, grammar, and pronunciation. You are roleplaying a specific scenario with the user (provided in the context). Act out the scenario naturally in your response.\n\nCRITICAL: At the end of EVERY response, you MUST append a structured feedback section analyzing the user's previous message. Format it as follows:\n\n[Feedback]\n- Grammar: (Correct any mistakes or say 'Good')\n- Vocabulary: (Suggest better words or phrases)\n- Fluency: (Give a tip on sounding more natural)",
 };
 
 const LANGUAGE_PREFIXES: Record<string, string> = {
@@ -32,8 +39,27 @@ const LANGUAGE_PREFIXES: Record<string, string> = {
   mr: "Please respond in Marathi (मराठीत उत्तर द्या). ",
 };
 
+
+function getFileBase64(url: string): string | null {
+  if (!url.startsWith("/uploads/")) return null;
+  try {
+    const filename = url.replace("/uploads/", "");
+    const filepath = path.join(process.cwd(), "public", "uploads", filename);
+    const data = fs.readFileSync(filepath);
+    const ext = path.extname(filename).toLowerCase();
+    let mimeType = "application/octet-stream";
+    if (ext === ".png") mimeType = "image/png";
+    else if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
+    else if (ext === ".webp") mimeType = "image/webp";
+    else if (ext === ".gif") mimeType = "image/gif";
+    return `data:${mimeType};base64,${data.toString("base64")}`;
+  } catch (err) {
+    return null;
+  }
+}
+
 async function callOllama(
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string; attachments?: string[] | null }>,
   model: string
 ): Promise<string> {
   const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
@@ -53,6 +79,117 @@ async function callOllama(
   const data = await response.json() as { message?: { content: string }; error?: string };
   if (data.error) throw new Error(data.error);
   return data.message?.content || "";
+}
+
+async function callOpenAI(
+  messages: Array<{ role: string; content: string; attachments?: string[] | null }>,
+  model: string,
+  apiKey: string
+): Promise<{ content: string; tokenUsage: number }> {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: model || "gpt-4o-mini",
+      messages: messages.map(m => {
+        if (!m.attachments || m.attachments.length === 0) return { role: m.role, content: m.content };
+        const content = [{ type: "text", text: m.content }] as any[];
+        for (const url of m.attachments) {
+          const b64 = getFileBase64(url);
+          if (b64) content.push({ type: "image_url", image_url: { url: b64 } });
+        }
+        return { role: m.role, content };
+      }),
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenAI error: ${response.status} ${error}`);
+  }
+
+  const data = await response.json() as any;
+  return { 
+    content: data.choices?.[0]?.message?.content || "", 
+    tokenUsage: data.usage?.total_tokens || 0 
+  };
+}
+
+async function callAnthropic(
+  messages: Array<{ role: string; content: string; attachments?: string[] | null }>,
+  model: string,
+  apiKey: string
+): Promise<{ content: string; tokenUsage: number }> {
+  const systemMessage = messages.find(m => m.role === "system");
+  const userMessages = messages.filter(m => m.role !== "system");
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: model || "claude-3-5-sonnet-20241022",
+      max_tokens: 4096,
+      system: systemMessage?.content || "",
+      messages: userMessages.map(m => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content,
+      })),
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Anthropic error: ${response.status} ${error}`);
+  }
+
+  const data = await response.json() as any;
+  const inputTokens = data.usage?.input_tokens || 0;
+  const outputTokens = data.usage?.output_tokens || 0;
+  return { 
+    content: data.content?.[0]?.text || "", 
+    tokenUsage: inputTokens + outputTokens 
+  };
+}
+
+async function callGemini(
+  messages: Array<{ role: string; content: string; attachments?: string[] | null }>,
+  model: string,
+  apiKey: string
+): Promise<{ content: string; tokenUsage: number }> {
+  const systemMessage = messages.find(m => m.role === "system");
+  const userMessages = messages.filter(m => m.role !== "system");
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model || "gemini-1.5-flash"}:generateContent?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: userMessages.map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      })),
+      systemInstruction: systemMessage?.content ? {
+        parts: [{ text: systemMessage.content }],
+      } : undefined,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Gemini error: ${response.status} ${error}`);
+  }
+
+  const data = await response.json() as any;
+  return {
+    content: data.candidates?.[0]?.content?.parts?.[0]?.text || "",
+    tokenUsage: data.usageMetadata?.totalTokenCount || 0
+  };
 }
 
 function generateSuggestedQuestions(content: string, mode: string): string[] {
@@ -82,6 +219,11 @@ function generateSuggestedQuestions(content: string, mode: string): string[] {
       "Give me a quick summary.",
       "What should I know next?",
     ],
+    english_teacher: [
+      "How do I say this more naturally?",
+      "Can we practice a conversation about travel?",
+      "Could you correct my grammar?",
+    ],
   };
   return (suggestions[mode] || suggestions.general).slice(0, 3);
 }
@@ -93,38 +235,9 @@ chatRouter.use(requireAuth);
 chatRouter.get("/conversations", async (req, res): Promise<void> => {
   const userId = req.userId!;
 
-  const messageCountSq = db
-    .select({
-      conversationId: messagesTable.conversationId,
-      count: count().as("count"),
-    })
-    .from(messagesTable)
-    .groupBy(messagesTable.conversationId)
-    .as("msg_counts");
-
-  const lastMsgSq = db
-    .select({
-      conversationId: messagesTable.conversationId,
-      lastContent: sql<string>`(array_agg(${messagesTable.content} ORDER BY ${messagesTable.createdAt} DESC))[1]`.as("last_content"),
-    })
-    .from(messagesTable)
-    .groupBy(messagesTable.conversationId)
-    .as("last_msgs");
-
   const convs = await db
-    .select({
-      id: conversationsTable.id,
-      title: conversationsTable.title,
-      mode: conversationsTable.mode,
-      bookmarked: conversationsTable.bookmarked,
-      createdAt: conversationsTable.createdAt,
-      updatedAt: conversationsTable.updatedAt,
-      messageCount: sql<number>`COALESCE(${messageCountSq.count}, 0)`,
-      lastMessage: sql<string | null>`${lastMsgSq.lastContent}`,
-    })
+    .select()
     .from(conversationsTable)
-    .leftJoin(messageCountSq, eq(conversationsTable.id, messageCountSq.conversationId))
-    .leftJoin(lastMsgSq, eq(conversationsTable.id, lastMsgSq.conversationId))
     .where(eq(conversationsTable.userId, userId))
     .orderBy(desc(conversationsTable.updatedAt));
 
@@ -250,7 +363,18 @@ chatRouter.post("/chat", async (req, res): Promise<void> => {
   }
 
   const userId = req.userId!;
-  const { content, conversationId, mode = "general", model = "llama3.2", language = "en" } = parsed.data;
+  const { content, conversationId, mode = "general", model = "llama3.2", language = "en", attachments } = parsed.data;
+
+  // Get user profile to determine AI provider and API keys
+  const [userProfile] = await db
+    .select()
+    .from(userProfilesTable)
+    .where(eq(userProfilesTable.userId, userId));
+
+  const aiProvider = userProfile?.aiProvider || (DEFAULT_OPENAI_API_KEY ? "openai" : "ollama");
+  const openaiKey = userProfile?.openaiApiKey || DEFAULT_OPENAI_API_KEY;
+  const anthropicKey = userProfile?.anthropicApiKey || DEFAULT_ANTHROPIC_API_KEY;
+  const geminiKey = userProfile?.geminiApiKey || DEFAULT_GEMINI_API_KEY;
 
   let convId = conversationId;
 
@@ -267,6 +391,7 @@ chatRouter.post("/chat", async (req, res): Promise<void> => {
     conversationId: convId,
     role: "user",
     content,
+    attachments,
   });
 
   const history = await db
@@ -278,17 +403,47 @@ chatRouter.post("/chat", async (req, res): Promise<void> => {
   const languagePrefix = LANGUAGE_PREFIXES[language] || "";
   const systemPrompt = languagePrefix + SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.general;
 
-  const ollamaMessages = [
+  const messages = [
     { role: "system", content: systemPrompt },
-    ...history.map((m) => ({ role: m.role, content: m.content })),
+    ...history.map((m) => ({ role: m.role, content: m.content, attachments: m.attachments as string[] | null })),
   ];
 
-  let aiContent: string;
+  let aiContent = "";
+  let tokenUsage = 0;
   try {
-    aiContent = await callOllama(ollamaMessages, model);
+    switch (aiProvider) {
+      case "openai":
+        if (!openaiKey) {
+          throw new Error("OpenAI API key not configured");
+        }
+        const oaiRes = await callOpenAI(messages, model, openaiKey);
+        aiContent = oaiRes.content;
+        tokenUsage = oaiRes.tokenUsage;
+        break;
+      case "anthropic":
+        if (!anthropicKey) {
+          throw new Error("Anthropic API key not configured");
+        }
+        const anthRes = await callAnthropic(messages, model, anthropicKey);
+        aiContent = anthRes.content;
+        tokenUsage = anthRes.tokenUsage;
+        break;
+      case "ollama":
+      default:
+        try {
+          aiContent = await callOllama(messages, model);
+          tokenUsage = 0; // Local LLM doesn't return usage in this simple fetch
+        } catch (err) {
+          req.log.warn({ err }, "Ollama unavailable, using mock response");
+          aiContent = `I am a mock assistant. I received your message: "${content}".\n\nTo get real answers, please configure an AI provider (OpenAI/Anthropic/Gemini) in your settings or start a local Ollama instance.`;
+        }
+        break;
+    }
   } catch (err) {
-    req.log.error({ err }, "Ollama request failed");
-    res.status(503).json({ error: "AI service unavailable. Please ensure Ollama is running with a Llama model." });
+    req.log.error({ err, provider: aiProvider }, "AI request failed");
+    res.status(503).json({ 
+      error: `AI service unavailable for ${aiProvider}. ${err instanceof Error ? err.message : ''}` 
+    });
     return;
   }
 
@@ -298,6 +453,7 @@ chatRouter.post("/chat", async (req, res): Promise<void> => {
       conversationId: convId,
       role: "assistant",
       content: aiContent,
+      metadata: tokenUsage > 0 ? JSON.stringify({ tokenUsage }) : null,
     })
     .returning();
 
@@ -314,6 +470,8 @@ chatRouter.post("/chat", async (req, res): Promise<void> => {
     messageId: aiMsg.id,
     suggestedQuestions,
     model,
+    provider: aiProvider,
+    metadata: tokenUsage > 0 ? JSON.stringify({ tokenUsage }) : null,
   });
 });
 

@@ -37,12 +37,16 @@ import type {
   DocumentAnalysisResult,
   ErrorEnvelope,
   ErrorResponse,
+  GenerateMediaInput,
+  GenerateMediaOutput,
   HandleBrowserLoginCallbackParams,
   HealthStatus,
   LogoutSuccess,
   MobileTokenExchangeRequest,
   MobileTokenExchangeSuccess,
   OllamaModel,
+  UploadFile200,
+  UploadFileInput,
   UserProfile,
   UserProfileUpdate
 } from './api.schemas';
@@ -58,6 +62,77 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
+
+export const getGenerateMediaUrl = () => {
+
+
+
+
+  return `/api/generate/media`
+}
+
+/**
+ * @summary Generate image or video based on a prompt
+ */
+export const generateMedia = async (generateMediaInput: GenerateMediaInput, options?: RequestInit): Promise<GenerateMediaOutput> => {
+
+  return customFetch<GenerateMediaOutput>(getGenerateMediaUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      generateMediaInput,)
+  }
+);}
+
+
+
+
+export const getGenerateMediaMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateMedia>>, TError,{data: BodyType<GenerateMediaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateMedia>>, TError,{data: BodyType<GenerateMediaInput>}, TContext> => {
+
+const mutationKey = ['generateMedia'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateMedia>>, {data: BodyType<GenerateMediaInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateMedia(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateMediaMutationResult = NonNullable<Awaited<ReturnType<typeof generateMedia>>>
+    export type GenerateMediaMutationBody = BodyType<GenerateMediaInput>
+    export type GenerateMediaMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate image or video based on a prompt
+ */
+export const useGenerateMedia = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateMedia>>, TError,{data: BodyType<GenerateMediaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateMedia>>,
+        TError,
+        {data: BodyType<GenerateMediaInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateMediaMutationOptions(options));
+    }
 
 export const getHealthCheckUrl = () => {
 
@@ -1852,4 +1927,77 @@ export function useListAvailableModels<TData = Awaited<ReturnType<typeof listAva
 
 
 
+
+export const getUploadFileUrl = () => {
+
+
+
+
+  return `/api/upload`
+}
+
+/**
+ * @summary Upload a file (image/video) for chat attachment
+ */
+export const uploadFile = async (uploadFileInput: UploadFileInput, options?: RequestInit): Promise<UploadFile200> => {
+    const formData = new FormData();
+formData.append(`file`, uploadFileInput.file);
+
+  return customFetch<UploadFile200>(getUploadFileUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body:
+      formData,
+  }
+);}
+
+
+
+
+export const getUploadFileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadFile>>, TError,{data: BodyType<UploadFileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadFile>>, TError,{data: BodyType<UploadFileInput>}, TContext> => {
+
+const mutationKey = ['uploadFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadFile>>, {data: BodyType<UploadFileInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  uploadFile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadFileMutationResult = NonNullable<Awaited<ReturnType<typeof uploadFile>>>
+    export type UploadFileMutationBody = BodyType<UploadFileInput>
+    export type UploadFileMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Upload a file (image/video) for chat attachment
+ */
+export const useUploadFile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadFile>>, TError,{data: BodyType<UploadFileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadFile>>,
+        TError,
+        {data: BodyType<UploadFileInput>},
+        TContext
+      > => {
+      return useMutation(getUploadFileMutationOptions(options));
+    }
 

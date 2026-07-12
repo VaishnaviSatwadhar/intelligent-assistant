@@ -10,7 +10,9 @@ import {
   User, 
   Settings,
   LogOut,
-  Menu
+  Menu,
+  Wand2,
+  Mic
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -34,7 +36,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: "/learn", label: "Learning", icon: GraduationCap },
     { href: "/career", label: "Career", icon: Briefcase },
     { href: "/documents", label: "Documents", icon: FileText },
+    { href: "/english-teacher", label: "English Teacher", icon: Mic },
     { href: "/bookmarks", label: "Bookmarks", icon: Bookmark },
+    { href: "/generate", label: "Media Gen", icon: Wand2 },
   ];
 
   const bottomNavItems = [

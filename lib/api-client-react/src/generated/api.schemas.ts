@@ -9,6 +9,10 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface UploadFileInput {
+  file: Blob;
+}
+
 export interface AuthUser {
   id: string;
   /** @nullable */
@@ -122,6 +126,8 @@ export interface Message {
   createdAt: string;
   /** @nullable */
   metadata?: string | null;
+  /** @nullable */
+  attachments?: string[] | null;
 }
 
 export type ConversationWithMessagesMode = typeof ConversationWithMessagesMode[keyof typeof ConversationWithMessagesMode];
@@ -154,6 +160,7 @@ export const ChatMessageInputMode = {
   career: 'career',
   document: 'document',
   voice: 'voice',
+  english_teacher: 'english_teacher',
 } as const;
 
 export type ChatMessageInputLanguage = typeof ChatMessageInputLanguage[keyof typeof ChatMessageInputLanguage];
@@ -173,6 +180,7 @@ export interface ChatMessageInput {
   mode?: ChatMessageInputMode;
   model?: string;
   language?: ChatMessageInputLanguage;
+  attachments?: string[];
 }
 
 export interface ChatResponse {
@@ -258,6 +266,16 @@ export const UserProfileTheme = {
   system: 'system',
 } as const;
 
+export type UserProfileAiProvider = typeof UserProfileAiProvider[keyof typeof UserProfileAiProvider];
+
+
+export const UserProfileAiProvider = {
+  ollama: 'ollama',
+  openai: 'openai',
+  anthropic: 'anthropic',
+  gemini: 'gemini',
+} as const;
+
 export interface UserProfile {
   id: string;
   /** @nullable */
@@ -270,6 +288,13 @@ export interface UserProfile {
   bio?: string | null;
   /** @nullable */
   profileImageUrl?: string | null;
+  aiProvider?: UserProfileAiProvider;
+  /** @nullable */
+  openaiApiKey?: string | null;
+  /** @nullable */
+  anthropicApiKey?: string | null;
+  /** @nullable */
+  geminiApiKey?: string | null;
 }
 
 export type UserProfileUpdatePreferredLanguage = typeof UserProfileUpdatePreferredLanguage[keyof typeof UserProfileUpdatePreferredLanguage];
@@ -290,6 +315,15 @@ export const UserProfileUpdateTheme = {
   system: 'system',
 } as const;
 
+export type UserProfileUpdateAiProvider = typeof UserProfileUpdateAiProvider[keyof typeof UserProfileUpdateAiProvider];
+
+
+export const UserProfileUpdateAiProvider = {
+  ollama: 'ollama',
+  openai: 'openai',
+  anthropic: 'anthropic',
+} as const;
+
 export interface UserProfileUpdate {
   displayName?: string;
   preferredLanguage?: UserProfileUpdatePreferredLanguage;
@@ -297,6 +331,9 @@ export interface UserProfileUpdate {
   preferredModel?: string;
   voiceEnabled?: boolean;
   bio?: string;
+  aiProvider?: UserProfileUpdateAiProvider;
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
 }
 
 export interface ModeCount {
@@ -327,6 +364,37 @@ export interface OllamaModel {
   digest?: string | null;
 }
 
+export type GenerateMediaInputType = typeof GenerateMediaInputType[keyof typeof GenerateMediaInputType];
+
+
+export const GenerateMediaInputType = {
+  image: 'image',
+  video: 'video',
+  audio: 'audio',
+} as const;
+
+export type GenerateMediaInputVideoMode = typeof GenerateMediaInputVideoMode[keyof typeof GenerateMediaInputVideoMode];
+
+
+export const GenerateMediaInputVideoMode = {
+  text2video: 'text2video',
+  talking_photo: 'talking_photo',
+} as const;
+
+export interface GenerateMediaInput {
+  prompt: string;
+  type: GenerateMediaInputType;
+  videoMode?: GenerateMediaInputVideoMode;
+  baseImage?: string;
+  audioData?: string;
+  voiceId?: string;
+}
+
+export interface GenerateMediaOutput {
+  url: string;
+  error?: string;
+}
+
 /**
  * Opaque session token — `Bearer <sid>`.
  */
@@ -340,5 +408,9 @@ export type HandleBrowserLoginCallbackParams = {
 code?: string;
 state?: string;
 iss?: string;
+};
+
+export type UploadFile200 = {
+  url?: string;
 };
 

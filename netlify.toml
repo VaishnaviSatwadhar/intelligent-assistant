@@ -1,11 +1,16 @@
 [build]
-  command = "pnpm run typecheck && pnpm --filter @workspace/smart-ai run build"
+  command = "pnpm run typecheck && pnpm --filter @workspace/smart-ai... --filter @workspace/api-server... run build"
   publish = "artifacts/smart-ai/dist/public"
+  functions = "netlify/functions"
 
 [build.environment]
   PNPM_FLAGS = "--no-frozen-lockfile"
   VITE_CLERK_PUBLISHABLE_KEY = "pk_test_c3VubnktZmlzaC03NC5jbGVyay5hY2NvdW50cy5kZXYk"
 
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
 
 [[redirects]]
   from = "/*"

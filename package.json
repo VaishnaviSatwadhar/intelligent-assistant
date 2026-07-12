@@ -13,13 +13,5 @@
     "prettier": "^3.8.3",
     "typescript": "~5.9.3"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@clerk/shared",
-      "@swc/core",
-      "esbuild",
-      "msw",
-      "unrs-resolver"
-    ]
-  }
+  "packageManager": "pnpm@11.9.0"
 }

@@ -729,3 +729,49 @@ pnpm --filter @workspace/api-server run dev
 # Start frontend (dev)
 pnpm --filter @workspace/smart-ai run dev
 ```
+
+---
+
+## Deployment to Vercel
+
+This project is configured to be easily deployed to Vercel using a single monolithic deployment for both the frontend (Vite) and the backend (Express API as a serverless function).
+
+### Vercel Project Setup
+
+1. Push your repository to GitHub.
+2. Go to [Vercel](https://vercel.com/) and create a new Project.
+3. Import your GitHub repository.
+4. Leave the **Root Directory** as the repository root (`./`).
+5. Under **Build and Output Settings**, Vercel should automatically detect the `vercel.json` configuration and the Framework Preset. If not, explicitly set:
+   - **Framework Preset**: `Vite`
+   - **Build Command**: `pnpm --filter @workspace/smart-ai run build`
+   - **Output Directory**: `artifacts/smart-ai/dist`
+6. Expand **Environment Variables** and add all variables from your `.env` file (e.g., `DATABASE_URL`, `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY`, etc.). Note: `OLLAMA_URL` needs to be publicly accessible (e.g., using a reverse proxy or ngrok) if you want the Vercel hosted version to communicate with your local Ollama instance, otherwise use a remote LLM API.
+7. Click **Deploy**.
+
+Vercel will use the provided `vercel.json` and `/api/index.ts` files to correctly route API traffic to your backend while serving the Vite frontend on the root domain.
+
+
+## Main Logic & Architecture
+
+The Intelligent Assistant (SmartAI) is built using a modern full-stack monorepo architecture:
+
+### 1. Frontend (React + Vite)
+- **Framework & Styling**: Built with React, Vite, TailwindCSS, and Radix UI components for a premium user experience.
+- **Voice Capabilities**: Leverages the browser's native `SpeechRecognition` API for continuous voice-to-text recording, and `window.speechSynthesis` for text-to-speech AI responses.
+- **State Management**: Uses React Query (via Orval-generated hooks) to cache and manage interactions with the backend.
+
+### 2. Backend (Express + Drizzle ORM)
+- **API Server**: A Node.js Express server that exposes REST endpoints for chatting, uploading documents, and managing conversation history.
+- **Database**: Uses PostgreSQL for persistent storage, managed via Drizzle ORM (schema definitions map conversations, messages, and users).
+- **Serverless Support**: Configured to run seamlessly as a Serverless Function (via `serverless-http`) for cloud deployments like Netlify.
+
+### 3. AI Integration Layer
+- **Prompt Engineering**: The backend routes (`api-server/src/routes/chat.ts`) define distinct AI personalities (e.g., General, Career Coach, Document Analyzer, English Teacher) using tailored system prompts.
+- **Model Orchestration**: Supports multiple LLM providers (Anthropic Claude, Ollama, Gemini) depending on user selection.
+- **Feature Modules**:
+  - **English Teacher Mode**: Injects dynamic context like the user's education level and chosen practice scenario, and mandates structured grammar/vocabulary feedback from the AI.
+  - **Document Analysis**: Processes uploaded files, extracts text (e.g., PDF parsing), and embeds the context directly into the AI's prompt for Retrieval-Augmented Generation (RAG).
+
+### 4. Authentication
+- Secured using **Clerk**. The frontend handles user sign-in/sign-up flows, while the backend uses Clerk middleware to verify session tokens and protect routes.

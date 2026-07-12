@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean, integer, varchar } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, integer, varchar, jsonb } from "drizzle-orm/pg-core";
 import { usersTable } from "./auth";
 
 export const userProfilesTable = pgTable("user_profiles", {
@@ -9,6 +9,12 @@ export const userProfilesTable = pgTable("user_profiles", {
   preferredModel: varchar("preferred_model", { length: 100 }).notNull().default("llama3.2"),
   voiceEnabled: boolean("voice_enabled").notNull().default(false),
   bio: text("bio"),
+  aiProvider: varchar("ai_provider", { length: 20 }).notNull().default("ollama"),
+  openaiApiKey: text("openai_api_key"),
+  anthropicApiKey: text("anthropic_api_key"),
+  geminiApiKey: text("gemini_api_key"),
+  huggingFaceApiKey: text("hugging_face_api_key"),
+  elevenLabsApiKey: text("eleven_labs_api_key"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
@@ -29,6 +35,7 @@ export const messagesTable = pgTable("messages", {
   role: varchar("role", { length: 20 }).notNull(),
   content: text("content").notNull(),
   metadata: text("metadata"),
+  attachments: jsonb("attachments"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -39,6 +39,9 @@ export default function BookmarksPage() {
   const createBookmark = useCreateBookmark();
   const deleteBookmark = useDeleteBookmark();
 
+  // Ensure bookmarks is always an array
+  const safeBookmarks = Array.isArray(bookmarks) ? bookmarks : [];
+
   const handleCreate = () => {
     if (!newTitle.trim() || !newContent.trim()) return;
     createBookmark.mutate(
@@ -62,7 +65,7 @@ export default function BookmarksPage() {
     );
   };
 
-  const filtered = bookmarks?.filter((b: Bookmark) => {
+  const filtered = safeBookmarks.filter((b: Bookmark) => {
     const matchSearch =
       b.title.toLowerCase().includes(search.toLowerCase()) ||
       b.content.toLowerCase().includes(search.toLowerCase());
@@ -70,7 +73,7 @@ export default function BookmarksPage() {
     return matchSearch && matchCat;
   });
 
-  const categories = Array.from(new Set(bookmarks?.map((b: Bookmark) => b.category) ?? []));
+  const categories = Array.from(new Set(safeBookmarks.map((b: Bookmark) => b.category) ?? []));
 
   return (
     <AppLayout>

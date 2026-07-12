@@ -15,4 +15,6 @@ export interface Message {
   createdAt: Date;
   /** @nullable */
   metadata?: string | null;
+  /** @nullable */
+  attachments?: string[] | null;
 }

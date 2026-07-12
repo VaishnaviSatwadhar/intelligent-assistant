@@ -186,6 +186,12 @@ function ClerkRouter() {
           <Route path="/chat/:id">
             {() => <ProtectedRoute component={ChatPage} />}
           </Route>
+          <Route path="/english-teacher">
+            {() => <ProtectedRoute component={() => <ChatPage defaultMode="english_teacher" hideModeSelector={true} />} />}
+          </Route>
+          <Route path="/english-teacher/:id">
+            {() => <ProtectedRoute component={() => <ChatPage defaultMode="english_teacher" hideModeSelector={true} />} />}
+          </Route>
           <Route path="/learn">
             {() => <ProtectedRoute component={LearnPage} />}
           </Route>

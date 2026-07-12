@@ -1,4 +1,5 @@
 import express, { type Express } from "express";
+import path from "path";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
@@ -49,5 +50,6 @@ app.use(
 );
 
 app.use("/api", router);
+app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
 
 export default app;

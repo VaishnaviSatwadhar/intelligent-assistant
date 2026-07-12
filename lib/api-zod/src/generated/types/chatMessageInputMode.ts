@@ -15,4 +15,5 @@ export const ChatMessageInputMode = {
   career: 'career',
   document: 'document',
   voice: 'voice',
+  english_teacher: 'english_teacher',
 } as const;

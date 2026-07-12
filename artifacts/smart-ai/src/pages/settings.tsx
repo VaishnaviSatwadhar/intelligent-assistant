@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -31,6 +32,8 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  Key,
+  Bot,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -42,10 +45,16 @@ export default function SettingsPage() {
   });
   const updateProfile = useUpdateUserProfile();
 
+  // Ensure models is always an array
+  const safeModels = Array.isArray(models) ? models : [];
+
   const [language, setLanguage] = useState("en");
   const [theme, setThemeLocal] = useState<"light" | "dark" | "system">("dark");
   const [preferredModel, setPreferredModel] = useState("");
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [aiProvider, setAiProvider] = useState<"ollama" | "openai" | "anthropic">("ollama");
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [anthropicApiKey, setAnthropicApiKey] = useState("");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -54,6 +63,9 @@ export default function SettingsPage() {
       setThemeLocal((profile.theme as "light" | "dark" | "system") ?? "dark");
       setPreferredModel(profile.preferredModel ?? "");
       setVoiceEnabled(profile.voiceEnabled ?? false);
+      setAiProvider((profile.aiProvider as "ollama" | "openai" | "anthropic") ?? "ollama");
+      setOpenaiApiKey(profile.openaiApiKey ?? "");
+      setAnthropicApiKey(profile.anthropicApiKey ?? "");
     }
   }, [profile]);
 
@@ -65,6 +77,9 @@ export default function SettingsPage() {
           theme: theme as "light" | "dark" | "system",
           preferredModel: preferredModel || undefined,
           voiceEnabled,
+          aiProvider,
+          openaiApiKey: openaiApiKey || undefined,
+          anthropicApiKey: anthropicApiKey || undefined,
         },
       },
       {
@@ -185,7 +200,7 @@ export default function SettingsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Auto (server default)</SelectItem>
-                    {models?.map((m) => (
+                    {safeModels.map((m) => (
                       <SelectItem key={m.name} value={m.name}>
                         {m.name}
                         {m.size && (
@@ -197,9 +212,9 @@ export default function SettingsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {models && models.length > 0 && (
+                {safeModels.length > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    {models.length} model{models.length !== 1 ? "s" : ""} available
+                    {safeModels.length} model{safeModels.length !== 1 ? "s" : ""} available
                   </p>
                 )}
               </div>
@@ -232,6 +247,76 @@ export default function SettingsPage() {
                 </Badge>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* AI Provider */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot size={18} className="text-cyan-400" />
+              AI Provider
+            </CardTitle>
+            <CardDescription>Choose your AI service provider</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Select value={aiProvider} onValueChange={(value: "ollama" | "openai" | "anthropic") => setAiProvider(value)}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Select provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ollama">Ollama (Local)</SelectItem>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {aiProvider === "openai" && (
+              <div className="space-y-2">
+                <Label htmlFor="openai-key" className="flex items-center gap-2">
+                  <Key size={14} />
+                  OpenAI API Key
+                </Label>
+                <Input
+                  id="openai-key"
+                  type="password"
+                  placeholder="sk-..."
+                  value={openaiApiKey}
+                  onChange={(e) => setOpenaiApiKey(e.target.value)}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your API key is stored securely and used only for OpenAI requests.
+                </p>
+              </div>
+            )}
+
+            {aiProvider === "anthropic" && (
+              <div className="space-y-2">
+                <Label htmlFor="anthropic-key" className="flex items-center gap-2">
+                  <Key size={14} />
+                  Anthropic API Key
+                </Label>
+                <Input
+                  id="anthropic-key"
+                  type="password"
+                  placeholder="sk-ant-..."
+                  value={anthropicApiKey}
+                  onChange={(e) => setAnthropicApiKey(e.target.value)}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your API key is stored securely and used only for Anthropic requests.
+                </p>
+              </div>
+            )}
+
+            {aiProvider === "ollama" && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle size={16} className="text-green-400" />
+                Using local Ollama - no API key required
+              </div>
+            )}
           </CardContent>
         </Card>
 

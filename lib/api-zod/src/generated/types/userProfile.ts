@@ -5,6 +5,7 @@
  * SmartAI Assistant API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserProfileAiProvider } from './userProfileAiProvider';
 import type { UserProfilePreferredLanguage } from './userProfilePreferredLanguage';
 import type { UserProfileTheme } from './userProfileTheme';
 
@@ -20,4 +21,11 @@ export interface UserProfile {
   bio?: string | null;
   /** @nullable */
   profileImageUrl?: string | null;
+  aiProvider?: UserProfileAiProvider;
+  /** @nullable */
+  openaiApiKey?: string | null;
+  /** @nullable */
+  anthropicApiKey?: string | null;
+  /** @nullable */
+  geminiApiKey?: string | null;
 }

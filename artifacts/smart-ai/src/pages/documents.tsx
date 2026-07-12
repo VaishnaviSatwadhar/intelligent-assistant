@@ -46,6 +46,9 @@ export default function DocumentsPage() {
   const analyzeDocument = useAnalyzeDocument();
   const deleteDocument = useDeleteDocument();
 
+  // Ensure documents is always an array
+  const safeDocuments = Array.isArray(documents) ? documents : [];
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -148,13 +151,13 @@ export default function DocumentsPage() {
                   <Skeleton key={i} className="h-14 w-full rounded-lg" />
                 ))}
               </div>
-            ) : documents?.length === 0 ? (
+            ) : safeDocuments.length === 0 ? (
               <div className="p-6 text-center text-muted-foreground text-sm">
                 No documents yet. Upload one to get started.
               </div>
             ) : (
               <div className="p-2 space-y-1">
-                {documents?.map((doc: Document) => (
+                {safeDocuments.map((doc: Document) => (
                   <div
                     key={doc.id}
                     onClick={() => {

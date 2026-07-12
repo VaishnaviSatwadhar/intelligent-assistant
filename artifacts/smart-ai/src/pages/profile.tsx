@@ -48,7 +48,7 @@ export default function ProfilePage() {
   };
 
   const initials =
-    (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? user?.email?.[0] ?? "U");
+    (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? user?.primaryEmailAddress?.emailAddress?.[0] ?? "U");
 
   return (
     <AppLayout>
@@ -68,7 +68,7 @@ export default function ProfilePage() {
           <CardContent className="p-6">
             <div className="flex items-center gap-5">
               <Avatar className="w-16 h-16">
-                <AvatarImage src={user?.profileImageUrl ?? undefined} />
+                <AvatarImage src={user?.imageUrl ?? undefined} />
                 <AvatarFallback className="text-xl font-bold bg-primary/20 text-primary">
                   {initials.toUpperCase() || "U"}
                 </AvatarFallback>
@@ -77,7 +77,7 @@ export default function ProfilePage() {
                 <h2 className="text-lg font-semibold">
                   {user?.firstName} {user?.lastName}
                 </h2>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
+                <p className="text-sm text-muted-foreground">{user?.primaryEmailAddress?.emailAddress}</p>
                 <Badge variant="outline" className="mt-1 text-xs">
                   Replit Account
                 </Badge>

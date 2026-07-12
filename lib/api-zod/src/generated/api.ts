@@ -9,6 +9,24 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Generate image or video based on a prompt
+ */
+export const GenerateMediaBody = zod.object({
+  "prompt": zod.string(),
+  "type": zod.enum(['image', 'video', 'audio']),
+  "videoMode": zod.enum(['text2video', 'talking_photo']).optional(),
+  "baseImage": zod.string().optional(),
+  "audioData": zod.string().optional(),
+  "voiceId": zod.string().optional()
+})
+
+export const GenerateMediaResponse = zod.object({
+  "url": zod.string(),
+  "error": zod.string().optional()
+})
+
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -101,7 +119,7 @@ export const LogoutMobileSessionResponse = zod.object({
 export const ListConversationsResponseItem = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "mode": zod.enum(['general', 'learning', 'career', 'document', 'voice']),
+  "mode": zod.enum(['general', 'learning', 'career', 'document', 'voice', 'english_teacher']),
   "bookmarked": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
@@ -119,7 +137,7 @@ export const ListConversationsResponse = zod.array(ListConversationsResponseItem
 
 export const CreateConversationBody = zod.object({
   "title": zod.string().min(1),
-  "mode": zod.enum(['general', 'learning', 'career', 'document', 'voice']).optional()
+  "mode": zod.enum(['general', 'learning', 'career', 'document', 'voice', 'english_teacher']).optional(),
 })
 
 
@@ -133,7 +151,7 @@ export const GetConversationParams = zod.object({
 export const GetConversationResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "mode": zod.enum(['general', 'learning', 'career', 'document', 'voice']),
+  "mode": zod.enum(['general', 'learning', 'career', 'document', 'voice', 'english_teacher']),
   "bookmarked": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
@@ -143,7 +161,8 @@ export const GetConversationResponse = zod.object({
   "role": zod.enum(['user', 'assistant', 'system']),
   "content": zod.string(),
   "createdAt": zod.coerce.date(),
-  "metadata": zod.string().nullish()
+  "metadata": zod.string().nullish(),
+  "attachments": zod.array(zod.string()).nullish()
 }))
 })
 
@@ -166,7 +185,7 @@ export const UpdateConversationBody = zod.object({
 export const UpdateConversationResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "mode": zod.enum(['general', 'learning', 'career', 'document', 'voice']),
+  "mode": zod.enum(['general', 'learning', 'career', 'document', 'voice', 'english_teacher']),
   "bookmarked": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
@@ -196,9 +215,10 @@ export const DeleteConversationResponse = zod.object({
 export const SendChatMessageBody = zod.object({
   "content": zod.string().min(1),
   "conversationId": zod.number().nullish(),
-  "mode": zod.enum(['general', 'learning', 'career', 'document', 'voice']).optional(),
+  "mode": zod.enum(['general', 'learning', 'career', 'document', 'voice', 'english_teacher']).optional(),
   "model": zod.string().optional(),
-  "language": zod.enum(['en', 'hi', 'mr']).optional()
+  "language": zod.enum(['en', 'hi', 'mr']).optional(),
+  "attachments": zod.array(zod.string()).optional()
 })
 
 export const SendChatMessageResponse = zod.object({
@@ -329,7 +349,11 @@ export const GetUserProfileResponse = zod.object({
   "preferredModel": zod.string(),
   "voiceEnabled": zod.boolean(),
   "bio": zod.string().nullish(),
-  "profileImageUrl": zod.string().nullish()
+  "profileImageUrl": zod.string().nullish(),
+  "aiProvider": zod.enum(['ollama', 'openai', 'anthropic', 'gemini']).optional(),
+  "openaiApiKey": zod.string().nullish(),
+  "anthropicApiKey": zod.string().nullish(),
+  "geminiApiKey": zod.string().nullish()
 })
 
 
@@ -342,7 +366,10 @@ export const UpdateUserProfileBody = zod.object({
   "theme": zod.enum(['light', 'dark', 'system']).optional(),
   "preferredModel": zod.string().optional(),
   "voiceEnabled": zod.boolean().optional(),
-  "bio": zod.string().optional()
+  "bio": zod.string().optional(),
+  "aiProvider": zod.enum(['ollama', 'openai', 'anthropic']).optional(),
+  "openaiApiKey": zod.string().optional(),
+  "anthropicApiKey": zod.string().optional()
 })
 
 export const UpdateUserProfileResponse = zod.object({
@@ -353,7 +380,11 @@ export const UpdateUserProfileResponse = zod.object({
   "preferredModel": zod.string(),
   "voiceEnabled": zod.boolean(),
   "bio": zod.string().nullish(),
-  "profileImageUrl": zod.string().nullish()
+  "profileImageUrl": zod.string().nullish(),
+  "aiProvider": zod.enum(['ollama', 'openai', 'anthropic', 'gemini']).optional(),
+  "openaiApiKey": zod.string().nullish(),
+  "anthropicApiKey": zod.string().nullish(),
+  "geminiApiKey": zod.string().nullish()
 })
 
 
@@ -386,5 +417,17 @@ export const ListAvailableModelsResponseItem = zod.object({
   "digest": zod.string().nullish()
 })
 export const ListAvailableModelsResponse = zod.array(ListAvailableModelsResponseItem)
+
+
+/**
+ * @summary Upload a file (image/video) for chat attachment
+ */
+export const UploadFileBody = zod.object({
+  "file": zod.instanceof(File)
+})
+
+export const UploadFileResponse = zod.object({
+  "url": zod.string().optional()
+})
 
 

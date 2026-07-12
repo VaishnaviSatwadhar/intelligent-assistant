@@ -16,4 +16,5 @@ export interface ChatMessageInput {
   mode?: ChatMessageInputMode;
   model?: string;
   language?: ChatMessageInputLanguage;
+  attachments?: string[];
 }
